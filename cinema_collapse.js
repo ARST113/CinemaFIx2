@@ -1,27 +1,26 @@
 (function () {
     'use strict';
 
-    console.log('[CinemaButtonPlugin] Плагин загружен');
+    console.log('[FixCinemaPosition] Загружен');
 
-    Lampa.Listener.follow('full', function(e) {
+    Lampa.Listener.follow('full', function (e) {
         if (e.type === 'complite') {
-            setTimeout(function() {
+            setTimeout(() => {
                 try {
-                    var fullContainer = e.object.activity.render();
-                    // Ищем кнопку с классом 'cinema--button'
-                    var cinemaBtn = fullContainer.find('.cinema--button');
-                    console.log('[CinemaButtonPlugin] Найдена кнопка Cinema:', cinemaBtn.length);
-                    
-                    if (cinemaBtn.length) {
-                        // Пример: добавляем класс, который через CSS сворачивает кнопку
-                        cinemaBtn.addClass('collapsed');
-                        // Или можно скрыть кнопку
-                        // cinemaBtn.hide();
+                    const activity = e.object.activity.render();
+                    const cinemaButton = activity.find('.cinema--button');
+                    const target = activity.find('.full-start-new__buttons');
+
+                    if (cinemaButton.length && target.length) {
+                        target.prepend(cinemaButton); // перемещаем первым
+                        console.log('[FixCinemaPosition] Кнопка перемещена внутрь .full-start-new__buttons');
+                    } else {
+                        console.warn('[FixCinemaPosition] Контейнер или кнопка не найдены');
                     }
                 } catch (err) {
-                    console.error('[CinemaButtonPlugin] Ошибка:', err);
+                    console.error('[FixCinemaPosition] Ошибка при перемещении кнопки:', err);
                 }
-            }, 500); // задержка, чтобы экран точно успел отрендериться
+            }, 300); // дать Lampa время вставить кнопку
         }
     });
 })();
