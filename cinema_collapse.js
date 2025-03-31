@@ -3,61 +3,60 @@
 
     console.log('[CinemaHider] загружен');
 
-    let once = false;
-
-    Lampa.Listener.follow('full', function (e) {
-        if (e.type !== 'complite') return;
-
-        setTimeout(() => {
-            const render = $('.activity-full'); // исправлено
-
-            const cinemaBtn = render.find('.full-start__button').filter(function () {
-                const svg = $(this).find('svg');
-                return svg.length && svg.html().includes('M21.837,83.419');
-            });
-
-            if (!cinemaBtn.length) {
-                console.log('[CinemaHider] кнопка Cinema не найдена');
-                return;
-            }
-
-            console.log('[CinemaHider] Cinema найдена, прячем её');
+    /**
+     * 1) Силовой способ: раз в 1.5 секунды ищем .cinema--button и удаляем её,
+     *    если она внезапно появилась в карточке.
+     */
+    setInterval(() => {
+        const cinemaBtn = document.querySelector('.cinema--button');
+        if (cinemaBtn) {
+            console.log('[CinemaHider] кнопка Cinema найдена — удаляем');
             cinemaBtn.remove();
+        }
+    }, 1500);
 
-            if (once) return;
-            once = true;
+    /**
+     * 2) Добавляем Cinema как новый источник в выпадающий список «Смотреть».
+     */
+    Lampa.Player.addPlugin({
+        title: 'Cinema',
+        component: 'cinema_online',
+        type: 'video',
 
-            Lampa.Player.addPlugin({
-                title: 'Cinema',
+        onContextMenu: function () {
+            return {
+                name: 'Cinema',
+                description: 'Смотреть через плагин Cinema'
+            };
+        },
+
+        onContextLauch: function (movie) {
+            // Этот код повторяет логику плагина Cinema,
+            // чтобы запустить нужный компонент
+            const id = Lampa.Utils.hash(
+                movie.number_of_seasons
+                    ? movie.original_name
+                    : movie.original_title
+            );
+            const all = Lampa.Storage.get('clarification_search', '{}');
+
+            // Если в вашей сборке нужно явно регистрировать компонент:
+            // Lampa.Component.add('cinema_online', cinema_component);
+
+            // Запускаем плагин Cinema
+            Lampa.Activity.push({
+                url: '',
+                title: Lampa.Lang.translate('title_online'),
                 component: 'cinema_online',
-                type: 'video',
-                onContextMenu: function () {
-                    return {
-                        name: 'Cinema',
-                        description: 'Смотреть через плагин Cinema'
-                    };
-                },
-                onContextLauch: function (movie) {
-                    const id = Lampa.Utils.hash(movie.number_of_seasons ? movie.original_name : movie.original_title);
-                    const all = Lampa.Storage.get('clarification_search', '{}');
-
-                    Lampa.Component.add('cinema_online');
-
-                    Lampa.Activity.push({
-                        url: '',
-                        title: Lampa.Lang.translate('title_online'),
-                        component: 'cinema_online',
-                        search: all[id] ? all[id] : movie.title,
-                        search_one: movie.title,
-                        search_two: movie.original_title,
-                        movie: movie,
-                        page: 1,
-                        clarification: all[id] ? true : false
-                    });
-                }
+                search: all[id] ? all[id] : movie.title,
+                search_one: movie.title,
+                search_two: movie.original_title,
+                movie: movie,
+                page: 1,
+                clarification: all[id] ? true : false
             });
-
-            console.log('[CinemaHider] Cinema добавлена как источник');
-        }, 800);
+        }
     });
+
+    console.log('[CinemaHider] «Cinema» добавлена как источник и кнопка скрывается');
 })();
