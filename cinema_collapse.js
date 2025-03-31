@@ -1,74 +1,68 @@
 (function () {
     'use strict';
 
-    console.log('[CinemaWrapper] плагин загружен');
+    console.log('[CinemaHider] загружен');
 
-    function waitForElement(selector, timeout = 5000) {
-        return new Promise((resolve) => {
-            const interval = 50;
-            let elapsed = 0;
+    let once = false;
 
-            const timer = setInterval(() => {
-                const el = document.querySelector(selector);
-                if (el) {
-                    clearInterval(timer);
-                    resolve(el);
-                } else if ((elapsed += interval) >= timeout) {
-                    clearInterval(timer);
-                    resolve(null);
-                }
-            }, interval);
-        });
-    }
-
-    Lampa.Listener.follow('full', async function (e) {
+    Lampa.Listener.follow('full', function (e) {
         if (e.type !== 'complite') return;
 
-        setTimeout(async () => {
-            const activity = Lampa.Activity.active();
-            const render = activity.render();
+        setTimeout(() => {
+            const active = Lampa.Activity.active();
+            const render = active.render();
 
-            // Ждём кнопку Cinema
-            const btn = render.find('.view--online_cinema');
-            if (!btn.length) return;
+            // Найдём кнопку Cinema по SVG (если нет явного класса)
+            const cinemaBtn = render.find('.full-start__button').filter(function () {
+                const svg = $(this).find('svg');
+                return svg.length && svg.html().includes('M21.837,83.419'); // уникальный кусок Cinema SVG
+            });
 
-            console.log('[CinemaWrapper] кнопка Cinema найдена, скрываем из основного интерфейса');
+            if (!cinemaBtn.length) {
+                console.log('[CinemaHider] кнопка Cinema не найдена');
+                return;
+            }
 
-            // Удаляем кнопку Cinema из главного экрана
-            btn.remove();
+            console.log('[CinemaHider] Cinema найдена, прячем её');
 
-            // Добавляем новый источник в список "Смотреть"
+            // Удаляем с экрана
+            cinemaBtn.remove();
+
+            if (once) return;
+            once = true;
+
+            // Добавляем как источник
             Lampa.Player.addPlugin({
                 title: 'Cinema',
                 component: 'cinema_online',
                 type: 'video',
-                onContextMenu: function (object) {
+                onContextMenu: function () {
                     return {
                         name: 'Cinema',
-                        description: 'Смотреть через плагин Cinema',
+                        description: 'Смотреть через плагин Cinema'
                     };
                 },
-                onContextLauch: function (object) {
-                    // Используем те же действия, что и оригинальный Cinema
-                    var id = Lampa.Utils.hash(object.number_of_seasons ? object.original_name : object.original_title);
-                    var all = Lampa.Storage.get('clarification_search', '{}');
+                onContextLauch: function (movie) {
+                    const id = Lampa.Utils.hash(movie.number_of_seasons ? movie.original_name : movie.original_title);
+                    const all = Lampa.Storage.get('clarification_search', '{}');
 
-                    Lampa.Component.add('cinema_online'); // обязательно, если компонент ещё не зарегистрирован
+                    Lampa.Component.add('cinema_online');
+
                     Lampa.Activity.push({
                         url: '',
                         title: Lampa.Lang.translate('title_online'),
                         component: 'cinema_online',
-                        search: all[id] ? all[id] : object.title,
-                        search_one: object.title,
-                        search_two: object.original_title,
-                        movie: object,
+                        search: all[id] ? all[id] : movie.title,
+                        search_one: movie.title,
+                        search_two: movie.original_title,
+                        movie: movie,
                         page: 1,
-                        clarification: all[id] ? true : false,
+                        clarification: all[id] ? true : false
                     });
-                },
+                }
             });
 
-            console.log('[CinemaWrapper] Cinema добавлена как источник');
-        }, 500); // Подстраховка: Cinema может добавляться с задержкой
+            console.log('[CinemaHider] Cinema добавлена как источник');
+        }, 800); // увеличенная задержка
     });
 })();
