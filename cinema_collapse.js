@@ -1,42 +1,27 @@
 (function () {
     'use strict';
 
-    // Функция для логирования всех источников (для отладки)
-    function logSources() {
-        const sources = Lampa.Activity.sources || [];
-        console.log('[CinemaCollapseFix] Список источников:', sources.length);
-        sources.forEach((src, index) => {
-            console.log(index, src ? src.name : 'нет поля name');
-        });
-    }
+    console.log('[CinemaButtonPlugin] Плагин загружен');
 
-    // Интервал для проверки источников каждые 2 секунды
-    const INTERVAL = setInterval(() => {
-        const sources = Lampa.Activity.sources || [];
-        if (sources.length) {
-            // Логируем источники для отладки
-            logSources();
-
-            for (let i = 0; i < sources.length; i++) {
-                const src = sources[i];
-                // Проверяем, что src существует и src.name - строка
-                if (src && typeof src.name === 'string') {
-                    const lowerName = src.name.toLowerCase();
-                    // Если имя источника содержит "cinema"
-                    if (lowerName.includes('cinema') && typeof src.collapse !== 'function') {
-                        src.collapse = function () {
-                            return {
-                                title: 'Cinema',
-                                description: 'Источник от Cinema',
-                                sort: 1
-                            };
-                        };
-                        console.log('[CinemaCollapseFix] collapse() добавлен для источника:', src.name);
-                        clearInterval(INTERVAL);
-                        break;
+    Lampa.Listener.follow('full', function(e) {
+        if (e.type === 'complite') {
+            setTimeout(function() {
+                try {
+                    var fullContainer = e.object.activity.render();
+                    // Ищем кнопку с классом 'cinema--button'
+                    var cinemaBtn = fullContainer.find('.cinema--button');
+                    console.log('[CinemaButtonPlugin] Найдена кнопка Cinema:', cinemaBtn.length);
+                    
+                    if (cinemaBtn.length) {
+                        // Пример: добавляем класс, который через CSS сворачивает кнопку
+                        cinemaBtn.addClass('collapsed');
+                        // Или можно скрыть кнопку
+                        // cinemaBtn.hide();
                     }
+                } catch (err) {
+                    console.error('[CinemaButtonPlugin] Ошибка:', err);
                 }
-            }
+            }, 500); // задержка, чтобы экран точно успел отрендериться
         }
-    }, 2000);
+    });
 })();
